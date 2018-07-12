@@ -82,14 +82,10 @@ func (logger *aliyunLog) runLoop() {
 			},
 		}
 
-		println("write log ...")
-
 		if err := logger.logstore.PutLogs(group); err != nil {
 			fmt.Printf("logstore put logs err, %s\n", err)
 			continue
 		}
-
-		println("write log -- success")
 	}
 }
 
