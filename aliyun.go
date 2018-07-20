@@ -42,18 +42,13 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 	}, nil
 }
 
-func source() string {
-	_, filename, line, _ := runtime.Caller(3)
-
-	return fmt.Sprintf("%s:%d", filepath.Base(filename), line)
-}
-
 func (factory *loggerFactory) GetLogger(name string) slf4go.Logger {
 	log := &aliyunLog{
-		topic:    name,
-		source:   factory.source,
-		logstore: factory.logstore,
-		mq:       make(chan []*sls.LogContent, factory.cached),
+		topic:     name,
+		source:    factory.source,
+		logstore:  factory.logstore,
+		mq:        make(chan []*sls.LogContent, factory.cached),
+		codelevel: 3,
 	}
 
 	go log.runLoop()
@@ -62,10 +57,11 @@ func (factory *loggerFactory) GetLogger(name string) slf4go.Logger {
 }
 
 type aliyunLog struct {
-	topic    string
-	source   string
-	logstore *sls.LogStore
-	mq       chan []*sls.LogContent
+	topic     string
+	source    string
+	logstore  *sls.LogStore
+	mq        chan []*sls.LogContent
+	codelevel int
 }
 
 func (logger *aliyunLog) runLoop() {
@@ -89,8 +85,18 @@ func (logger *aliyunLog) runLoop() {
 	}
 }
 
+func (logger *aliyunLog) SourceCodeLevel(level int) {
+	logger.codelevel = level
+}
+
 func (logger *aliyunLog) GetName() string {
 	return logger.topic
+}
+
+func (logger *aliyunLog) Source() string {
+	_, filename, line, _ := runtime.Caller(logger.codelevel)
+
+	return fmt.Sprintf("%s:%d", filepath.Base(filename), line)
 }
 
 func (logger *aliyunLog) Trace(args ...interface{}) {
@@ -102,7 +108,7 @@ func (logger *aliyunLog) Trace(args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -120,7 +126,7 @@ func (logger *aliyunLog) TraceF(format string, args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -138,7 +144,7 @@ func (logger *aliyunLog) Debug(args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -156,7 +162,7 @@ func (logger *aliyunLog) DebugF(format string, args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -174,7 +180,7 @@ func (logger *aliyunLog) Info(args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -192,7 +198,7 @@ func (logger *aliyunLog) InfoF(format string, args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -210,7 +216,7 @@ func (logger *aliyunLog) Warn(args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -228,7 +234,7 @@ func (logger *aliyunLog) WarnF(format string, args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -246,7 +252,7 @@ func (logger *aliyunLog) Error(args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -264,7 +270,7 @@ func (logger *aliyunLog) ErrorF(format string, args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -282,7 +288,7 @@ func (logger *aliyunLog) Fatal(args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
@@ -300,7 +306,7 @@ func (logger *aliyunLog) FatalF(format string, args ...interface{}) {
 		},
 		&sls.LogContent{
 			Key:   proto.String("File"),
-			Value: proto.String(source()),
+			Value: proto.String(logger.Source()),
 		},
 		&sls.LogContent{
 			Key:   proto.String("Content"),
