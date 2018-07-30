@@ -38,7 +38,7 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 		project:  project,
 		logstore: logstore,
 		source:   config.Get("source").String(""),
-		cached:   config.Get("cached").Int(100),
+		cached:   config.Get("cached").Int(1000),
 	}, nil
 }
 
