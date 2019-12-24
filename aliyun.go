@@ -97,6 +97,16 @@ func (logger *aliyunLog) runLoop() {
 		})
 
 	}
+	
+	//保证退出时剩余数据上传
+	if len(group.Logs) > 0 {
+		if err := logger.logstore.PutLogs(group); err != nil {
+			fmt.Printf("logstore put logs err, %s\n", err)
+			continue
+		}
+		group.Logs = []*sls.Log{}
+		now = time.Now()
+	}
 }
 
 func (logger *aliyunLog) SourceCodeLevel(level int) {
