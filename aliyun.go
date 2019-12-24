@@ -6,17 +6,18 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/aliyun/aliyun-log-go-sdk"
+	sls "github.com/aliyun/aliyun-log-go-sdk"
 	config "github.com/dynamicgo/go-config"
 	"github.com/dynamicgo/slf4go"
 	"github.com/gogo/protobuf/proto"
 )
 
 type loggerFactory struct {
-	source   string
-	project  *sls.LogProject
-	logstore *sls.LogStore
-	cached   int
+	source         string
+	project        *sls.LogProject
+	logstore       *sls.LogStore
+	cached         int
+	putLogInterval time.Duration
 }
 
 func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
@@ -35,20 +36,22 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 	}
 
 	return &loggerFactory{
-		project:  project,
-		logstore: logstore,
-		source:   config.Get("source").String(""),
-		cached:   config.Get("cached").Int(10000),
+		project:        project,
+		logstore:       logstore,
+		source:         config.Get("source").String(""),
+		cached:         config.Get("cached").Int(10000),
+		putLogInterval: config.Get("putLogInterval").Duration(time.Second * 5),
 	}, nil
 }
 
 func (factory *loggerFactory) GetLogger(name string) slf4go.Logger {
 	log := &aliyunLog{
-		topic:     name,
-		source:    factory.source,
-		logstore:  factory.logstore,
-		mq:        make(chan []*sls.LogContent, factory.cached),
-		codelevel: 3,
+		topic:          name,
+		source:         factory.source,
+		logstore:       factory.logstore,
+		mq:             make(chan []*sls.LogContent, factory.cached),
+		codelevel:      3,
+		putLogInterval: factory.putLogInterval,
 	}
 
 	go log.runLoop()
@@ -57,31 +60,38 @@ func (factory *loggerFactory) GetLogger(name string) slf4go.Logger {
 }
 
 type aliyunLog struct {
-	topic     string
-	source    string
-	logstore  *sls.LogStore
-	mq        chan []*sls.LogContent
-	codelevel int
+	topic          string
+	source         string
+	logstore       *sls.LogStore
+	mq             chan []*sls.LogContent
+	codelevel      int
+	putLogInterval time.Duration
 }
 
 func (logger *aliyunLog) runLoop() {
+	now := time.Now()
+	group := &sls.LogGroup{
+		Topic:  proto.String(logger.topic),
+		Source: proto.String(logger.source),
+		Logs:   []*sls.Log{},
+	}
+
 	for content := range logger.mq {
 
-		group := &sls.LogGroup{
-			Topic:  proto.String(logger.topic),
-			Source: proto.String(logger.source),
-			Logs: []*sls.Log{
-				&sls.Log{
-					Contents: content,
-					Time:     proto.Uint32(uint32(time.Now().Unix())),
-				},
-			},
+		if now.Add(logger.putLogInterval).Before(time.Now()) && len(group.Logs) > 0 {
+			if err := logger.logstore.PutLogs(group); err != nil {
+				fmt.Printf("logstore put logs err, %s\n", err)
+				continue
+			}
+			group.Logs = []*sls.Log{}
+			now = time.Now()
 		}
 
-		if err := logger.logstore.PutLogs(group); err != nil {
-			fmt.Printf("logstore put logs err, %s\n", err)
-			continue
-		}
+		group.Logs = append(group.Logs, &sls.Log{
+			Contents: content,
+			Time:     proto.Uint32(uint32(time.Now().Unix())),
+		})
+
 	}
 }
 
