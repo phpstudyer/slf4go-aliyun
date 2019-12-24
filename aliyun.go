@@ -102,7 +102,7 @@ func (logger *aliyunLog) runLoop() {
 	if len(group.Logs) > 0 {
 		if err := logger.logstore.PutLogs(group); err != nil {
 			fmt.Printf("logstore put logs err, %s\n", err)
-			continue
+			return
 		}
 		group.Logs = []*sls.Log{}
 		now = time.Now()
