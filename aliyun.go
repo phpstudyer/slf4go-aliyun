@@ -18,6 +18,7 @@ type loggerFactory struct {
 	logstore       *sls.LogStore
 	cached         int
 	putLogInterval time.Duration
+	putLogMaxCount int
 }
 
 func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
@@ -41,6 +42,7 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 		source:         config.Get("source").String(""),
 		cached:         config.Get("cached").Int(10000),
 		putLogInterval: config.Get("putLogInterval").Duration(time.Second * 5),
+		putLogMaxCount: config.Get("putLogMaxCount").Int(50),
 	}, nil
 }
 
@@ -52,6 +54,7 @@ func (factory *loggerFactory) GetLogger(name string) slf4go.Logger {
 		mq:             make(chan []*sls.LogContent, factory.cached),
 		codelevel:      3,
 		putLogInterval: factory.putLogInterval,
+		putLogMaxCount: factory.putLogMaxCount,
 	}
 
 	go log.runLoop()
@@ -66,6 +69,7 @@ type aliyunLog struct {
 	mq             chan []*sls.LogContent
 	codelevel      int
 	putLogInterval time.Duration
+	putLogMaxCount int
 }
 
 func (logger *aliyunLog) runLoop() {
@@ -77,8 +81,8 @@ func (logger *aliyunLog) runLoop() {
 	}
 
 	for content := range logger.mq {
-
-		if now.Add(logger.putLogInterval).Before(time.Now()) && len(group.Logs) > 0 {
+		count := len(group.Logs)
+		if count >= logger.putLogMaxCount || (now.Add(logger.putLogInterval).Before(time.Now()) && count > 0) {
 			if err := logger.logstore.PutLogs(group); err != nil {
 				fmt.Printf("logstore put logs err, %s\n", err)
 				continue
