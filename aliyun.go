@@ -12,6 +12,12 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
+var (
+  	PutLogInterval = time.Second * 5
+	PutLogMaxCount = 100
+	MaxCount = 10000
+)
+
 type loggerFactory struct {
 	source         string
 	project        *sls.LogProject
@@ -40,9 +46,9 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 		project:        project,
 		logstore:       logstore,
 		source:         config.Get("source").String(""),
-		cached:         config.Get("cached").Int(10000),
-		putLogInterval: config.Get("putLogInterval").Duration(time.Second * 5),
-		putLogMaxCount: config.Get("putLogMaxCount").Int(50),
+		cached:         MaxCount,
+		putLogInterval: PutLogInterval,
+		putLogMaxCount: PutLogMaxCount,
 	}, nil
 }
 
@@ -96,16 +102,6 @@ func (logger *aliyunLog) runLoop() {
 			Time:     proto.Uint32(uint32(time.Now().Unix())),
 		})
 
-	}
-	
-	//保证退出时剩余数据上传
-	if len(group.Logs) > 0 {
-		if err := logger.logstore.PutLogs(group); err != nil {
-			fmt.Printf("logstore put logs err, %s\n", err)
-			return
-		}
-		group.Logs = []*sls.Log{}
-		now = time.Now()
 	}
 }
 
