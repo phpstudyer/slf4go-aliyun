@@ -78,23 +78,39 @@ type aliyunLog struct {
 	putLogMaxCount int
 }
 
-func (logger *aliyunLog) runLoop() {
+func (l *aliyunLog) runLoop() {
 	now := time.Now()
 	group := &sls.LogGroup{
-		Topic:  proto.String(logger.topic),
-		Source: proto.String(logger.source),
+		Topic:  proto.String(l.topic),
+		Source: proto.String(l.source),
 		Logs:   []*sls.Log{},
 	}
+	(now.Add(l.putLogInterval).Before(time.Now()))
 
-	for content := range logger.mq {
+	ticker := time.NewTicker(l.putLogInterval)
+	defer ticker.Stop()
+	go func() {
+		for range ticker.C {
+			if len(group.Logs) > 0 {
+				err := l.logstore.PutLogs(group)
+				if err != nil {
+					fmt.Printf("logstore put logs err, %s\n", err)
+				} else {
+					group.Logs = []*sls.Log{}
+				}
+			}
+		}
+	}()
+
+	for content := range l.mq {
 		count := len(group.Logs)
-		if count >= logger.putLogMaxCount || (now.Add(logger.putLogInterval).Before(time.Now()) && count > 0) {
-			if err := logger.logstore.PutLogs(group); err != nil {
+		if count >= l.putLogMaxCount {
+			log.Printf("group %+v", group)
+			if err := l.logstore.PutLogs(group); err != nil {
 				fmt.Printf("logstore put logs err, %s\n", err)
 				continue
 			}
 			group.Logs = []*sls.Log{}
-			now = time.Now()
 		}
 
 		group.Logs = append(group.Logs, &sls.Log{
