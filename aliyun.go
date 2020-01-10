@@ -30,7 +30,7 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 		AccessKeySecret: config.Get("accesskey", "secret").String(""),
 	}
 
-	logstore, err := project.GetLogStore(config.Get("slf4go","logstore").String(""))
+	logstore, err := project.GetLogStore(config.Get("slf4go", "logstore").String(""))
 
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 		source:         config.Get("source").String(""),
 		cached:         config.Get("maxCount").Int(100000),
 		putLogMaxCount: config.Get("perCount").Int(10),
-		putLogInterval: config.Get("waitInterval").Duration(time.Second*5),
+		putLogInterval: config.Get("waitInterval").Duration(time.Second * 5),
 	}, nil
 }
 
@@ -99,7 +99,6 @@ func (l *aliyunLog) runLoop() {
 	for content := range l.mq {
 		count := len(group.Logs)
 		if count >= l.putLogMaxCount {
-			
 			if err := l.logstore.PutLogs(group); err != nil {
 				fmt.Printf("logstore put logs err, %s\n", err)
 				continue
