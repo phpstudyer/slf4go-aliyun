@@ -41,8 +41,8 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 		logstore:       logstore,
 		source:         config.Get("source").String(""),
 		cached:         config.Get("maxCount").Int(100000),
-		putLogInterval: config.Get("perCount").Int(10),
-		putLogMaxCount: config.Get("waitInterval").Duration(time.Second*5),
+		putLogMaxCount: config.Get("perCount").Int(10),
+		putLogInterval: config.Get("waitInterval").Duration(time.Second*5),
 	}, nil
 }
 
