@@ -99,7 +99,6 @@ func (l *aliyunLog) runLoop() {
 	for content := range l.mq {
 		count := len(group.Logs)
 		if count >= l.putLogMaxCount {
-			log.Printf("group %+v", group)
 			if err := l.logstore.PutLogs(group); err != nil {
 				fmt.Printf("logstore put logs err, %s\n", err)
 				continue
