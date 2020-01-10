@@ -30,13 +30,13 @@ type loggerFactory struct {
 func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 
 	project := &sls.LogProject{
-		Name:            config.Get("project").String(""),
-		Endpoint:        config.Get("endpoint").String(""),
-		AccessKeyID:     config.Get("accesskey", "id").String(""),
-		AccessKeySecret: config.Get("accesskey", "secret").String(""),
+		Name:            config.Get("slf4go","project").String(""),
+		Endpoint:        config.Get("slf4go","endpoint").String(""),
+		AccessKeyID:     config.Get("slf4go","accesskey", "id").String(""),
+		AccessKeySecret: config.Get("slf4go","accesskey", "secret").String(""),
 	}
 
-	logstore, err := project.GetLogStore(config.Get("logstore").String(""))
+	logstore, err := project.GetLogStore(config.Get("slf4go","logstore").String(""))
 
 	if err != nil {
 		return nil, err
@@ -45,10 +45,10 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 	return &loggerFactory{
 		project:        project,
 		logstore:       logstore,
-		source:         config.Get("source").String(""),
-		cached:         MaxCount,
-		putLogInterval: PutLogInterval,
-		putLogMaxCount: PutLogMaxCount,
+		source:         config.Get("slf4go","source").String(""),
+		cached:         config.Get("slf4go","maxCount").Int(100000),
+		putLogInterval: config.Get("slf4go","perCount").Int(10),
+		putLogMaxCount: config.Get("slf4go","waitInterval").Duration(time.Second*5),
 	}, nil
 }
 
