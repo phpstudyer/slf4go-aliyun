@@ -12,12 +12,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
-var (
-  	PutLogInterval = time.Second * 5
-	PutLogMaxCount = 100
-	MaxCount = 10000
-)
-
 type loggerFactory struct {
 	source         string
 	project        *sls.LogProject
@@ -30,10 +24,10 @@ type loggerFactory struct {
 func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 
 	project := &sls.LogProject{
-		Name:            config.Get("slf4go","project").String(""),
-		Endpoint:        config.Get("slf4go","endpoint").String(""),
-		AccessKeyID:     config.Get("slf4go","accesskey", "id").String(""),
-		AccessKeySecret: config.Get("slf4go","accesskey", "secret").String(""),
+		Name:            config.Get("project").String(""),
+		Endpoint:        config.Get("endpoint").String(""),
+		AccessKeyID:     config.Get("accesskey", "id").String(""),
+		AccessKeySecret: config.Get("accesskey", "secret").String(""),
 	}
 
 	logstore, err := project.GetLogStore(config.Get("slf4go","logstore").String(""))
@@ -45,10 +39,10 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 	return &loggerFactory{
 		project:        project,
 		logstore:       logstore,
-		source:         config.Get("slf4go","source").String(""),
-		cached:         config.Get("slf4go","maxCount").Int(100000),
-		putLogInterval: config.Get("slf4go","perCount").Int(10),
-		putLogMaxCount: config.Get("slf4go","waitInterval").Duration(time.Second*5),
+		source:         config.Get("source").String(""),
+		cached:         config.Get("maxCount").Int(100000),
+		putLogInterval: config.Get("perCount").Int(10),
+		putLogMaxCount: config.Get("waitInterval").Duration(time.Second*5),
 	}, nil
 }
 
