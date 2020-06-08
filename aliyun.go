@@ -30,7 +30,7 @@ func newLoggerFactory(config config.Config) (slf4go.LoggerFactory, error) {
 		AccessKeySecret: config.Get("accesskey", "secret").String(""),
 	}
 
-	logstore, err := project.GetLogStore(config.Get("slf4go", "logstore").String(""))
+	logstore, err := project.GetLogStore(config.Get("logstore").String(""))
 
 	if err != nil {
 		return nil, err
